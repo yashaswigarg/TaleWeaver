@@ -1,7 +1,7 @@
 """The Scribe Agent for TaleWeaver.
 
-Drafts immersive story chapters, integrates previous player choices and rolling lore summaries,
-and ends on high-stakes cliffhangers with 3 divergent options for the player.
+Drafts immersive story chapters, integrates player storyline guidance, character inventories,
+and branching decision points towards an epic narrative climax.
 """
 
 from __future__ import annotations
@@ -12,22 +12,25 @@ from taleweaver.config import get_llm, limiter
 from taleweaver.mcp_servers.lore_server import db as lore_db
 from taleweaver.state import ChapterDraft, CharacterProfile, WorldLore
 
-SCRIBE_SYSTEM_PROMPT = """You are the Scribe, master of prose, suspense, and dynamic interactive storytelling.
+SCRIBE_SYSTEM_PROMPT = """You are the Scribe, master of prose, sensory atmosphere, and dynamic interactive storytelling.
 Your mission is to write a thrilling, sensory-rich chapter for the storybook.
 
 Rules for Storytelling:
-1. Show, Don't Tell: Use physical textures, lighting, sounds, and visceral action.
-2. Continuity: Faithfully respect character inventories, physical statuses, and previous choices.
+1. Show, Don't Tell: Use physical textures, lighting, sounds, dialogue, and visceral action.
+2. Continuity: Faithfully respect character inventories, physical statuses, previous player choices, and user's overarching storyline.
 3. Length: Write 300-500 words of evocative, high-caliber prose.
-4. The Climax / Decision Point: Conclude the chapter at a pivotal fork in the road or sudden revelation.
-5. Branching Choices: Provide exactly THREE divergent, intriguing choices for the player.
-   - Choice 1: A bold, aggressive, or high-risk path.
-   - Choice 2: A stealthy, analytical, or diplomatic path.
-   - Choice 3: An unconventional, risky, or arcane path using an item/environment."""
+4. Pacing & Finale:
+   - If this is NOT the final chapter, end at a gripping cliffhanger and provide THREE divergent choices for the player.
+   - If this IS the final chapter, bring the core storyline and conflicts to a satisfying, memorable conclusion. Set is_finale=True and leave choices empty.
+5. Inventory Events:
+   - If characters gain, lose, or use significant items, record them in inventory_events so the Lorebook tracks them!"""
 
 SCRIBE_USER_TEMPLATE = """Story Context:
 Title: {title} | Genre: {genre} | Tone: {tone}
-Current Chapter Number: {chapter_num}
+Chapter: {chapter_num} of {target_chapters} (Is Final Chapter: {is_final_chapter})
+
+Desired Storyline / Context:
+{storyline}
 
 Canon World Lore:
 {lore_context}
@@ -44,7 +47,7 @@ Player's Decision From Previous Chapter:
 Required Fixes from Editor (if this is a revision pass):
 {editor_fixes}
 
-Write Chapter {chapter_num} with a compelling title, rich narrative, cliffhanger, and 3 choices."""
+Write Chapter {chapter_num} with an evocative title, vivid narrative prose, cliffhanger, inventory events (if any), and branching choices (unless finale)."""
 
 
 class ScribeAgent:
@@ -66,6 +69,8 @@ class ScribeAgent:
         world_lore: Optional[WorldLore],
         characters: List[CharacterProfile],
         rolling_summary: str,
+        storyline: Optional[str] = None,
+        target_chapters: int = 5,
         previous_choice: Optional[str] = None,
         editor_fixes: Optional[List[str]] = None,
     ) -> ChapterDraft:
@@ -85,6 +90,13 @@ class ScribeAgent:
 
         fixes_text = "\n".join(f"- {f}" for f in editor_fixes) if editor_fixes else "None (Initial Draft)."
         prev_choice_text = previous_choice or "Opening of the adventure (Chapter 1 introduction)."
+        is_final = chapter_num >= target_chapters
+
+        storyline_text = (
+            storyline
+            or (world_lore.storyline if world_lore else "")
+            or "A grand adventure unfolding with high stakes."
+        )
 
         chain = self.prompt | self.structured_llm
         draft: ChapterDraft = chain.invoke(
@@ -93,6 +105,9 @@ class ScribeAgent:
                 "genre": world_lore.genre if world_lore else "Adventure",
                 "tone": world_lore.tone if world_lore else "Atmospheric",
                 "chapter_num": chapter_num,
+                "target_chapters": target_chapters,
+                "is_final_chapter": "YES (Write Grand Finale)" if is_final else "NO",
+                "storyline": storyline_text,
                 "lore_context": lore_context,
                 "character_context": character_context,
                 "rolling_summary": rolling_summary or "The journey begins here.",

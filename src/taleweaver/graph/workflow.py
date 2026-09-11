@@ -35,20 +35,24 @@ class TaleWeaverGraph:
     def _node_world_smith(self, state: StoryState) -> Dict[str, Any]:
         """Generates or updates the world lore, then pauses for human review."""
         world_lore = state.get("world_lore")
+        storyline = state.get("storyline") or ""
+
         if not world_lore:
             world_lore = self.architect.generate_world(
                 title=state["title"],
                 genre=state["genre"],
+                storyline=storyline,
                 vision=state.get("character_feedback") or "",
             )
 
-        # HitL Gateway 1: World Approval
+        # HitL Gateway 1: World & Storyline Approval
         if not state.get("world_approved"):
             human_feedback = interrupt(
                 {
                     "stage": "world_review",
                     "title": world_lore.title,
                     "genre": world_lore.genre,
+                    "storyline": world_lore.storyline or storyline,
                     "setting": world_lore.setting_description,
                     "rules": world_lore.magic_or_tech_rules,
                     "conflict": world_lore.primary_conflict,
@@ -63,6 +67,7 @@ class TaleWeaverGraph:
                     rules=world_lore.magic_or_tech_rules,
                     conflict=world_lore.primary_conflict,
                     tone=world_lore.tone,
+                    storyline=world_lore.storyline or storyline,
                 )
 
         return {"world_lore": world_lore, "world_approved": True, "status_message": "World approved."}
@@ -102,6 +107,7 @@ class TaleWeaverGraph:
         chapter_num = state.get("current_chapter_num", 1)
         critique = state.get("editor_critique")
         revision_count = state.get("revision_count", 0)
+        target_chapters = state.get("target_chapters", 5)
 
         editor_fixes = None
         if critique and not critique.approved and revision_count > 0:
@@ -112,6 +118,8 @@ class TaleWeaverGraph:
             world_lore=state.get("world_lore"),
             characters=state.get("characters", []),
             rolling_summary=state.get("rolling_summary", ""),
+            storyline=state.get("storyline"),
+            target_chapters=target_chapters,
             previous_choice=state.get("player_decision"),
             editor_fixes=editor_fixes,
         )
@@ -156,7 +164,7 @@ class TaleWeaverGraph:
         }
 
     def _node_publisher(self, state: StoryState) -> Dict[str, Any]:
-        """Publishes chapter to disk, logs milestone, updates rolling summary."""
+        """Publishes chapter to disk, logs milestone, updates rolling summary, and applies inventory changes."""
         draft = state["active_draft"]
         illustration = state["current_illustration"]
         chapter_num = draft.chapter_number
@@ -171,11 +179,19 @@ class TaleWeaverGraph:
             chosen_action=action,
         )
 
-        # 2. MCP Lorebook tool
-        milestone = f"Chapter {chapter_num} completed: {draft.title}. Cliffhanger: {draft.cliffhanger}"
+        # 2. MCP Lorebook: Record chapter milestone
+        milestone = f"Chapter {chapter_num} completed: {draft.title}. Outcome: {draft.cliffhanger}"
         lore_db.record_milestone(chapter_num=chapter_num, event_summary=milestone)
 
-        # 3. Compact rolling summary
+        # 3. MCP Lorebook: Apply inventory changes from narrative
+        for inv_event in getattr(draft, "inventory_events", []):
+            lore_db.modify_inventory(
+                character_name=inv_event.character_name,
+                item=inv_event.item,
+                action=inv_event.action,
+            )
+
+        # 4. Compact rolling summary
         current_summary = state.get("rolling_summary", "")
         updated_summary = f"{current_summary}\n- Ch {chapter_num} ({draft.title}): {draft.cliffhanger}".strip()
 
@@ -185,6 +201,7 @@ class TaleWeaverGraph:
             content=draft.content,
             visual_prompt=illustration.visual_prompt if illustration else "",
             chosen_action=action,
+            is_finale=getattr(draft, "is_finale", False),
         )
 
         published_list = list(state.get("published_chapters") or [])
@@ -198,9 +215,10 @@ class TaleWeaverGraph:
         }
 
     def _node_player_decision(self, state: StoryState) -> Dict[str, Any]:
-        """HitL Gateway 3: Presents chapter and pauses for the player's branching choice."""
+        """HitL Gateway 3: Presents chapter and pauses for player's branching choice or finale acknowledgment."""
         draft = state["active_draft"]
         illustration = state.get("current_illustration")
+        is_finale = getattr(draft, "is_finale", False) or (draft.chapter_number >= state.get("target_chapters", 5))
 
         # Interrupt for player action
         choice_input = interrupt(
@@ -211,13 +229,14 @@ class TaleWeaverGraph:
                 "content": draft.content,
                 "cliffhanger": draft.cliffhanger,
                 "visual_prompt": illustration.visual_prompt if illustration else "",
+                "is_finale": is_finale,
                 "choices": [c.model_dump() for c in draft.choices],
             }
         )
 
         decision_str = str(choice_input) if choice_input is not None else "1"
         is_game_over = False
-        if decision_str.strip().lower() in ("exit", "quit", "end"):
+        if is_finale or decision_str.strip().lower() in ("exit", "quit", "end"):
             is_game_over = True
 
         return {
@@ -233,7 +252,7 @@ class TaleWeaverGraph:
         return "scribe_draft"
 
     def _node_compile_book(self, state: StoryState) -> Dict[str, Any]:
-        """Compiles master StoryBook.md using Publisher MCP."""
+        """Compiles master StoryBook.md and StoryBook.html using Publisher MCP."""
         res = publisher_engine.compile_book(
             story_title=state["title"],
             genre=state["genre"],

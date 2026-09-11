@@ -24,6 +24,9 @@ Guidelines:
 ARCHITECT_USER_TEMPLATE = """Please build the foundational world lore for the following story:
 Title: {title}
 Genre: {genre}
+Desired Storyline / Setting Context:
+{storyline}
+
 User Guidance/Vision: {vision}"""
 
 
@@ -40,7 +43,7 @@ class ArchitectAgent:
             ]
         )
 
-    def generate_world(self, title: str, genre: str, vision: str = "") -> WorldLore:
+    def generate_world(self, title: str, genre: str, storyline: str = "", vision: str = "") -> WorldLore:
         """Generates WorldLore and persists it into the Lorebook database."""
         limiter.wait()
         chain = self.prompt | self.structured_llm
@@ -48,9 +51,13 @@ class ArchitectAgent:
             {
                 "title": title,
                 "genre": genre,
-                "vision": vision or "Create a captivating, high-stakes starting point.",
+                "storyline": storyline or "A captivating adventure.",
+                "vision": vision or "Create an immersive, high-stakes starting point faithfully following the desired storyline.",
             }
         )
+        # Ensure storyline is recorded on the object
+        if storyline and not world_lore.storyline:
+            world_lore.storyline = storyline
 
         # Register in Lorebook MCP database
         lore_db.store_world(
@@ -58,6 +65,7 @@ class ArchitectAgent:
             rules=world_lore.magic_or_tech_rules,
             conflict=world_lore.primary_conflict,
             tone=world_lore.tone,
+            storyline=world_lore.storyline or storyline,
         )
 
         return world_lore

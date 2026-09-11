@@ -37,6 +37,7 @@ Make their backstories directly tie into the world's primary conflict and settin
 CHARACTER_USER_TEMPLATE = """World Lore Context:
 Title: {title}
 Genre: {genre}
+Desired Storyline / Context: {storyline}
 Setting: {setting}
 Rules: {rules}
 Primary Conflict: {conflict}
@@ -45,7 +46,7 @@ Tone: {tone}
 Player Feedback / Requests (if any):
 {feedback}
 
-Please create/update the character roster adhering to the instructions."""
+Please create/update the character roster adhering to the instructions. If specific characters or names were mentioned in the storyline (e.g. 'Mona'), prioritize them as the Protagonist and key companions."""
 
 
 class CharacterDesignerAgent:
@@ -73,11 +74,12 @@ class CharacterDesignerAgent:
             {
                 "title": world_lore.title,
                 "genre": world_lore.genre,
+                "storyline": getattr(world_lore, "storyline", "") or "A heroic tale.",
                 "setting": world_lore.setting_description,
                 "rules": world_lore.magic_or_tech_rules,
                 "conflict": world_lore.primary_conflict,
                 "tone": world_lore.tone,
-                "feedback": player_feedback or "Generate a fresh, balanced roster.",
+                "feedback": player_feedback or "Generate a fresh, balanced roster matching the story premise.",
             }
         )
 

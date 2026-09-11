@@ -31,33 +31,42 @@ def test_character_profile_creation():
 
 
 def test_world_lore_creation():
-    """Verify world lore schema validation."""
+    """Verify world lore schema validation and custom storyline."""
     lore = WorldLore(
-        title="Echoes of the Sunken Spire",
-        genre="Dark Fantasy / Steampunk",
-        setting_description="Submerged Victorian towers lit by bioluminescent leviathans.",
-        magic_or_tech_rules="Aetheric steam fuels all clockwork; diving suits require runic seals.",
-        primary_conflict="The Leviathan King is stirring beneath the city foundations.",
-        tone="Atmospheric, tense, and mystery-driven",
+        title="Mona in Kyoto",
+        genre="Comedy / Slice-of-Life",
+        storyline="Mona lives in a traditional countryside village, visiting Tokyo with family.",
+        setting_description="Quiet cedar hills, tea fields, wooden verandahs, and lively market stalls.",
+        magic_or_tech_rules="Realistic modern Japan with quaint village customs.",
+        primary_conflict="Mona keeps causing harmless comedic misunderstandings in her family.",
+        tone="Lighthearted, whimsical, and funny",
     )
-    assert lore.title == "Echoes of the Sunken Spire"
-    assert "Steampunk" in lore.genre
+    assert lore.title == "Mona in Kyoto"
+    assert "Tokyo" in lore.storyline
+    assert "Comedy" in lore.genre
 
 
-def test_chapter_draft_with_choices():
-    """Verify chapter draft and branching choices."""
+def test_chapter_draft_with_choices_and_inventory_events():
+    """Verify chapter draft, inventory changes, and finale flags."""
+    from taleweaver.state import InventoryEvent
     choice1 = StoryChoice(id=1, text="Venture into the Flooded Vault", consequence_hint="High danger")
     choice2 = StoryChoice(id=2, text="Consult the Archivist upstairs", consequence_hint="Safer information")
+
+    inv_event = InventoryEvent(character_name="Mona", item="Matcha Candy", action="add")
 
     draft = ChapterDraft(
         chapter_number=1,
         title="The First Bell Tolled",
         content="Water lapped against the iron portcullis as Kaelen adjusted his brass respirator...",
         cliffhanger="A low vibration resonated from the depths, cracking the foundation stones.",
+        is_finale=False,
+        inventory_events=[inv_event],
         choices=[choice1, choice2],
     )
     assert draft.chapter_number == 1
     assert len(draft.choices) == 2
+    assert len(draft.inventory_events) == 1
+    assert draft.inventory_events[0].item == "Matcha Candy"
     assert draft.choices[0].id == 1
 
 

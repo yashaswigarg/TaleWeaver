@@ -107,17 +107,22 @@ uv run taleweaver
 
 ## 🎮 Gameplay Flow
 
-1. **Title & Genre Selection:** Choose your own title or use the atmospheric presets.
-2. **HitL Gateway 1 (World Approval):** Review the generated world card. Accept or type custom tweaks to reshape the world.
+1. **Title, Genre & Custom Storyline:** 
+   - Input your Title and Genre.
+   - Enter an optional **Storyline / Context** (e.g. *"Mona lives in a traditional countryside village with her house, school, fields, and market, later taking an exciting trip to Tokyo with her family"*).
+   - Select your target chapter length (e.g. 3 chapters quick tale, 5 chapters standard book).
+2. **HitL Gateway 1 (World & Storyline Approval):** Review the generated world card and user storyline alignment. Accept or type custom tweaks to reshape the realm.
 3. **HitL Gateway 2 (Character Review):** Inspect your Protagonist, Companion, and Antagonist cards. Tweak stats, names, or starter items.
-4. **Interactive Chapters:** Read newly drafted chapters, explore the Art Director's visual prompts, and select choices **[1]**, **[2]**, **[3]**, or write a custom decision!
-5. **Master Storybook:** Type `quit` or finish your adventure to automatically compile `data/StoryBook.md` ready for reading or sharing.
+4. **Interactive Chapters & Dynamic Inventory:** Read newly drafted chapters, explore the Art Director's visual prompts, and select choices **[1]**, **[2]**, **[3]**, or write any custom decision. As the plot progresses, character inventories update automatically in the Lorebook!
+5. **Grand Finale & Dual Book Publishing:** Once the story reaches its climax or you type `quit`, TaleWeaver automatically compiles:
+   - 📖 **`data/StoryBook.md`:** Clean, formatted Markdown edition.
+   - 🌐 **`data/StoryBook.html`:** Beautiful, standalone, dark-themed responsive eBook with elegant Cinzel & Crimson Pro typography, table of contents, and illustration concept cards!
 
 ---
 
 ## 🧪 Test Suite
 
-Run the full automated test suite (15 unit & integration tests) covering state schemas, rate limiters, MCP database and filesystem tools, and full graph execution:
+Run the full automated test suite (16 unit & integration tests) covering state schemas, rate limiters, MCP database and filesystem tools, storyline context, and full graph execution:
 ```bash
 uv run pytest
 ```

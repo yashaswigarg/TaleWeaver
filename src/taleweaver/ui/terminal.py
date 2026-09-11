@@ -26,16 +26,19 @@ def print_banner() -> None:
 
 def display_world_card(data: Dict[str, Any]) -> None:
     """Renders the generated world lore in a formatted Rich panel."""
+    storyline = data.get("storyline", "")
+    storyline_section = f"\n### 🎯 Player's Guiding Storyline\n*{storyline}*\n" if storyline else ""
+
     content = f"""# {data.get('title', 'Unknown Title')}
 **Genre:** {data.get('genre', 'N/A')} | **Tone:** {data.get('tone', 'N/A')}
-
+{storyline_section}
 ### 🌍 Setting
 {data.get('setting', '')}
 
-### ⚡ World Rules & Physics/Magic
+### ⚡ World Rules & Physics/Magic/Society
 {data.get('rules', '')}
 
-### ⚔️ Looming Stakes & Primary Conflict
+### ⚔️ Looming Stakes & Core Conflict
 {data.get('conflict', '')}
 """
     console.print(
@@ -82,19 +85,23 @@ def display_chapter(data: Dict[str, Any]) -> None:
     content = data.get("content", "")
     cliffhanger = data.get("cliffhanger", "")
     prompt = data.get("visual_prompt", "")
+    is_finale = data.get("is_finale", False)
 
-    page_md = f"""# Chapter {ch_num}: {title}
+    header_tag = "🎉 GRAND FINALE" if is_finale else f"Chapter {ch_num}"
+    footer_tag = "**🏆 Resolution:**" if is_finale else "**⚡ Crisis / Cliffhanger:**"
+
+    page_md = f"""# {header_tag}: {title}
 
 {content}
 
 ---
-**⚡ Crisis:** *{cliffhanger}*
+{footer_tag} *{cliffhanger}*
 """
     console.print(
         Panel(
             Markdown(page_md),
-            title=f"[bold green]📖 StoryBook Page — Chapter {ch_num}[/bold green]",
-            border_style="green",
+            title=f"[bold green]📖 StoryBook Page — {header_tag}[/bold green]",
+            border_style="gold1" if is_finale else "green",
             padding=(1, 2),
         )
     )
@@ -110,8 +117,13 @@ def display_chapter(data: Dict[str, Any]) -> None:
         )
 
 
-def display_choices(choices: List[Dict[str, Any]]) -> str:
+def display_choices(choices: List[Dict[str, Any]], is_finale: bool = False) -> str:
     """Presents branching story choices and returns player selection."""
+    if is_finale or not choices:
+        console.print("\n[bold gold1]🎉 The chronicle has reached its climactic resolution![/bold gold1]")
+        Prompt.ask("[bold green]Press Enter to finalize and compile your StoryBook[/bold green]", default="")
+        return "quit"
+
     console.print("\n[bold yellow]🧭 Choose the Protagonist's Next Course of Action:[/bold yellow]")
     for c in choices:
         c_id = c.get("id", 1)

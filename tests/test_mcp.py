@@ -99,6 +99,12 @@ def test_publisher_engine_lifecycle():
         compile_res = pub.compile_book(story_title="Chains of the Sky", genre="Aetherpunk")
         assert "successfully compiled with 2 chapters" in compile_res
         assert book_path.exists()
+        html_file = out_dir / "StoryBook.html"
+        assert html_file.exists()
+        html_text = html_file.read_text(encoding="utf-8")
+        assert "<!DOCTYPE html>" in html_text
+        assert "Chains of the Sky" in html_text
+        assert "Chapter 1" in html_text
 
         content = pub.read_book()
         assert "# Chains of the Sky" in content

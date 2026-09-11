@@ -45,10 +45,16 @@ class LorebookDB:
                     rules TEXT,
                     conflict TEXT,
                     tone TEXT,
+                    storyline TEXT,
                     updated_at TEXT
                 )
                 """
             )
+            # Add storyline column if upgrading existing DB
+            try:
+                cursor.execute("ALTER TABLE world_lore ADD COLUMN storyline TEXT")
+            except sqlite3.OperationalError:
+                pass
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS characters (
@@ -86,22 +92,23 @@ class LorebookDB:
             )
             conn.commit()
 
-    def store_world(self, setting: str, rules: str, conflict: str, tone: str) -> str:
+    def store_world(self, setting: str, rules: str, conflict: str, tone: str, storyline: str = "") -> str:
         with self._connection() as conn:
             cursor = conn.cursor()
             now = datetime.now().isoformat()
             cursor.execute(
                 """
-                INSERT INTO world_lore (id, setting, rules, conflict, tone, updated_at)
-                VALUES (1, ?, ?, ?, ?, ?)
+                INSERT INTO world_lore (id, setting, rules, conflict, tone, storyline, updated_at)
+                VALUES (1, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     setting=excluded.setting,
                     rules=excluded.rules,
                     conflict=excluded.conflict,
                     tone=excluded.tone,
+                    storyline=excluded.storyline,
                     updated_at=excluded.updated_at
                 """,
-                (setting, rules, conflict, tone, now),
+                (setting, rules, conflict, tone, storyline, now),
             )
             conn.commit()
         return "World lore successfully preserved in Lorebook."
@@ -244,8 +251,9 @@ class LorebookDB:
             cursor.execute("SELECT * FROM world_lore WHERE id = 1")
             w = cursor.fetchone()
             if w:
+                storyline_text = f"\n- Core Storyline / Premise: {w['storyline']}" if w["storyline"] else ""
                 results.append(
-                    f"WORLD LORE:\n- Setting: {w['setting']}\n- Rules: {w['rules']}\n- Stakes: {w['conflict']}\n- Tone: {w['tone']}"
+                    f"WORLD LORE:\n- Setting: {w['setting']}\n- Rules: {w['rules']}\n- Stakes: {w['conflict']}\n- Tone: {w['tone']}{storyline_text}"
                 )
 
             # Character matches
@@ -291,9 +299,9 @@ server = MCPServer("taleweaver_lore_server")
 
 
 @server.tool()
-def store_world_lore(setting: str, rules: str, conflict: str, tone: str) -> str:
-    """Store or update the canonical story setting, physical/magical laws, conflict, and tone."""
-    return db.store_world(setting, rules, conflict, tone)
+def store_world_lore(setting: str, rules: str, conflict: str, tone: str, storyline: str = "") -> str:
+    """Store or update the canonical story setting, physical/magical laws, conflict, tone, and storyline."""
+    return db.store_world(setting, rules, conflict, tone, storyline)
 
 
 @server.tool()
