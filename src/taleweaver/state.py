@@ -78,10 +78,14 @@ class ChapterDraft(BaseModel):
 
 
 class EditorCritique(BaseModel):
-    """Quality control evaluation from the Grand Arbiter agent."""
+    """Quality control evaluation from the Grand Arbiter agent (LLM-as-a-Judge)."""
 
     approved: bool = Field(description="True if quality, tone, and pacing meet standards")
     score: int = Field(description="Rating from 1 to 10")
+    pacing_score: float = Field(default=8.0, description="Pacing and narrative rhythm score (1 to 10)")
+    lore_consistency_score: float = Field(default=8.0, description="Continuity with canon lore and inventory (1 to 10)")
+    character_voice_score: float = Field(default=8.0, description="Distinctiveness of character dialogue and voice (1 to 10)")
+    composite_score: float = Field(default=8.0, description="Weighted composite quality index (1 to 10)")
     critique: str = Field(description="Specific, actionable feedback or praise")
     required_fixes: List[str] = Field(
         default_factory=list, description="Bullet points for the Scribe to fix"

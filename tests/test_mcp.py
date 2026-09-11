@@ -116,10 +116,13 @@ def test_publisher_engine_lifecycle():
 def test_mcp_client_tool_bindings():
     """Verify LangChain tool wrappers."""
     tools = get_all_mcp_tools()
-    assert len(tools) == 6
+    assert len(tools) == 9
     tool_names = [t.name for t in tools]
     assert "query_lore" in tool_names
     assert "update_character_status" in tool_names
     assert "record_inventory_change" in tool_names
     assert "publish_story_chapter" in tool_names
     assert "compile_entire_storybook" in tool_names
+    assert "validate_inventory_action" in tool_names
+    assert "resolve_skill_check" in tool_names
+    assert "advance_world_clock" in tool_names

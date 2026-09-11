@@ -53,14 +53,26 @@ graph TD
 
 ## 🔌 Model Context Protocol (MCP) Integration
 
-TaleWeaver leverages the standardized **Model Context Protocol (MCP 2.x)** to decouple the AI reasoning graph from local data stores:
+TaleWeaver leverages the standardized **Model Context Protocol (MCP 2.x)** across 3 decoupled server subsystems:
 
-1. **`lore_server.py` (SQLite MCP):**
-   - Stores canonical setting lore, active character rosters, physical/emotional status, and inventory changes.
+1. **`lore_server.py` (SQLite Canon Database MCP):**
+   - Stores canonical world lore, character dossiers, physical/emotional status, inventory log, and milestones.
    - Tools: `store_world_lore`, `register_character`, `update_character_status`, `record_inventory_change`, `query_lore`.
-2. **`publisher_server.py` (Filesystem MCP):**
-   - Formats approved chapter prose and illustration prompts, persisting JSON snapshots and assembling the master storybook.
+2. **`rules_server.py` (World Physics & Consistency MCP):**
+   - Validates character actions against live inventory and resolves deterministic d20 skill checks against Difficulty Classes (DC).
+   - Tools: `validate_inventory_action`, `resolve_skill_check`, `advance_world_clock`.
+3. **`publisher_server.py` (Filesystem & eBook MCP):**
+   - Formats approved chapter prose and visual prompts, assembling both `StoryBook.md` and a responsive standalone `StoryBook.html` reader.
    - Tools: `publish_chapter`, `compile_storybook`, `read_storybook`.
+
+---
+
+## ⏳ LangGraph Time-Travel & Multiverse Branching
+
+Built on LangGraph's `SqliteSaver` checkpoint engine, TaleWeaver supports full state time-travel:
+- **Checkpoint History:** Every chapter, decision point, and approval pause is permanently checkpointed.
+- **Multiverse Forking:** Users can inspect past chapter snapshots and fork into an alternative narrative branch (`fork_story_branch`), testing "what if" choices without losing the original timeline.
+- **Interactive Web Console:** Run `uv run uvicorn taleweaver.server:app --reload` to explore the visual pipeline, inspect timeline checkpoints, and check character dossiers.
 
 ---
 

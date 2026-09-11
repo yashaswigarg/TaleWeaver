@@ -239,6 +239,22 @@ class LorebookDB:
                 for r in rows
             ]
 
+    def get_world(self) -> Optional[Dict[str, Any]]:
+        with self._connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM world_lore WHERE id = 1")
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "setting": row["setting"],
+                "rules": row["rules"],
+                "conflict": row["conflict"],
+                "tone": row["tone"],
+                "storyline": row["storyline"] if "storyline" in row.keys() else "",
+                "updated_at": row["updated_at"],
+            }
+
     def query_lore(self, topic: str) -> str:
         """Search world lore, characters, and milestones for context."""
         topic_lower = topic.lower().strip()

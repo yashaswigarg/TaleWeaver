@@ -312,3 +312,68 @@ def create_game_graph(db_path: Optional[str] = None) -> Any:
     conn = sqlite3.connect(db_path or str(CHECKPOINTS_DB_PATH), check_same_thread=False)
     checkpointer = SqliteSaver(conn)
     return TaleWeaverGraph(checkpointer=checkpointer).app
+
+
+def get_story_timeline(app: Any, thread_id: str) -> List[Dict[str, Any]]:
+    """Inspects LangGraph checkpoint history for a story thread, returning past decision points."""
+    config = {"configurable": {"thread_id": thread_id}}
+    history = []
+    seen_checkpoints = set()
+
+    try:
+        for snapshot in app.get_state_history(config):
+            cp_id = snapshot.config.get("configurable", {}).get("checkpoint_id")
+            if not cp_id or cp_id in seen_checkpoints:
+                continue
+            seen_checkpoints.add(cp_id)
+
+            values = snapshot.values or {}
+            draft = values.get("active_draft")
+            chap_num = draft.chapter_number if draft else values.get("current_chapter_num", 1)
+            title = draft.title if draft else values.get("title", "Prologue")
+            summary = values.get("rolling_summary", "")
+
+            history.append({
+                "checkpoint_id": cp_id,
+                "chapter_number": chap_num,
+                "title": title,
+                "summary": summary[:120] + "..." if len(summary) > 120 else summary,
+                "next_node": list(snapshot.next) if snapshot.next else [],
+            })
+    except Exception:
+        pass
+
+    return history
+
+
+def fork_story_branch(
+    app: Any,
+    source_thread_id: str,
+    checkpoint_id: str,
+    new_branch_thread_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Forks execution from an earlier checkpoint into a new timeline branch (Time-Travel)."""
+    import uuid
+    branch_id = new_branch_thread_id or f"{source_thread_id}_branch_{uuid.uuid4().hex[:6]}"
+
+    source_config = {"configurable": {"thread_id": source_thread_id, "checkpoint_id": checkpoint_id}}
+    target_config = {"configurable": {"thread_id": branch_id}}
+
+    target_snapshot = None
+    for snapshot in app.get_state_history(source_config):
+        if snapshot.config.get("configurable", {}).get("checkpoint_id") == checkpoint_id:
+            target_snapshot = snapshot
+            break
+
+    if target_snapshot is None:
+        raise ValueError(f"Checkpoint '{checkpoint_id}' not found in thread '{source_thread_id}'.")
+
+    # Seed the new branch thread with snapshot values
+    app.update_state(target_config, target_snapshot.values)
+
+    return {
+        "status": "branched",
+        "new_thread_id": branch_id,
+        "forked_from_checkpoint": checkpoint_id,
+        "chapter_number": target_snapshot.values.get("current_chapter_num", 1),
+    }

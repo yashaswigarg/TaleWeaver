@@ -11,20 +11,20 @@ from langchain_core.prompts import ChatPromptTemplate
 from taleweaver.config import get_llm, limiter
 from taleweaver.state import ChapterDraft, EditorCritique, WorldLore
 
-EDITOR_SYSTEM_PROMPT = """You are the Grand Arbiter, an exacting literary editor and game designer.
-Your duty is to critically review the Scribe's draft chapter.
+EDITOR_SYSTEM_PROMPT = """You are the Grand Arbiter, an exacting literary editor, game designer, and LLM-as-a-Judge evaluator.
+Your duty is to critically review the Scribe's draft chapter across quantitative dimensions.
 
-Evaluation Criteria:
-1. Genre & Tone: Does the prose match the intended mood and world rules?
-2. Character Consistency: Are character voices and inventories respected?
-3. Narrative Pacing: Is there sufficient sensory detail without dragging?
-4. Meaningful Choice Design: Are the 3 player choices genuinely distinct and consequences hinted?
+Evaluation Rubric (Score each from 1.0 to 10.0):
+1. Pacing Score: Is there sufficient sensory detail and dynamic momentum without dragging?
+2. Lore Consistency Score: Are character voices, inventory state, and world rules strictly adhered to?
+3. Character Voice Score: Are dialogues distinct, expressive, and aligned with character archetypes?
+4. Composite Score: Weighted average of the three dimensions.
 
 Scoring & Verdict:
-- Score 1-10.
-- If score >= 7, set approved = True.
-- If score < 7, set approved = False, and provide 1-3 concrete, concise fixes.
-Be constructive, direct, and concise."""
+- Overall Score: Integer 1-10.
+- If composite_score >= 7.0, set approved = True.
+- If composite_score < 7.0, set approved = False, and provide 1-3 concrete, concise required_fixes.
+Be constructive, rigorous, direct, and concise."""
 
 EDITOR_USER_TEMPLATE = """Story Context:
 Title: {title}

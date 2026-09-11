@@ -7,6 +7,7 @@ from langchain_core.tools import BaseTool, tool
 
 from taleweaver.mcp_servers.lore_server import db as lore_db
 from taleweaver.mcp_servers.publisher_server import publisher as publisher_engine
+from taleweaver.mcp_servers.rules_server import rules as rules_engine
 
 
 @tool
@@ -57,6 +58,30 @@ def compile_entire_storybook(story_title: str, genre: str) -> str:
     return publisher_engine.compile_book(story_title=story_title, genre=genre)
 
 
+@tool
+def validate_inventory_action(character_name: str, required_item: str, action_description: str) -> str:
+    """Validate whether a character possesses a required item before writing an action."""
+    res = rules_engine.validate_action(character_name, required_item, action_description)
+    return f"Inventory Check: {'PASS' if res['valid'] else 'FAIL'} - {res['reason']}"
+
+
+@tool
+def resolve_skill_check(character_name: str, attribute: str, difficulty_dc: int = 12) -> str:
+    """Roll a d20 skill check with character modifiers against a difficulty target."""
+    res = rules_engine.resolve_skill_check(character_name, attribute, difficulty_dc)
+    return (
+        f"Skill Check ({attribute.upper()} vs DC {difficulty_dc}): "
+        f"Rolled {res['d20_roll']} + {res['modifier']} = {res['total_score']} -> {res['outcome_tier']}"
+    )
+
+
+@tool
+def advance_world_clock(hours: int = 4) -> str:
+    """Advance the story world time and return current lighting and atmosphere."""
+    res = rules_engine.advance_time(hours)
+    return f"Time: {res['time_string']} ({res['phase']}) - {res['environmental_lighting']}"
+
+
 def get_all_mcp_tools() -> List[BaseTool]:
     """Returns the complete list of LangChain-compatible MCP tools for agent execution."""
     return [
@@ -66,4 +91,7 @@ def get_all_mcp_tools() -> List[BaseTool]:
         record_chapter_milestone,
         publish_story_chapter,
         compile_entire_storybook,
+        validate_inventory_action,
+        resolve_skill_check,
+        advance_world_clock,
     ]
