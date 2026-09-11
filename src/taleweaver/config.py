@@ -30,7 +30,7 @@ class Settings:
     """Application settings with rate-limiting and model configurations."""
 
     api_key: str = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
-    model_name: str = os.getenv("TALEWEAVER_MODEL", "gemini-2.5-flash")
+    model_name: str = os.getenv("TALEWEAVER_MODEL", "gemini-3.6-flash")
     rate_limit_delay: float = float(os.getenv("TALEWEAVER_RATE_LIMIT_DELAY", "4.0"))
     max_revisions: int = int(os.getenv("TALEWEAVER_MAX_REVISIONS", "1"))
     max_retries: int = 4
